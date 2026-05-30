@@ -30,7 +30,7 @@ export default function App() {
       <header className="sticky top-0 z-50 bg-black/70 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
           <button onClick={() => scrollTo('top')} aria-label={`${MARCA} — inicio`} className="flex items-center gap-2.5 group">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-cyan-400 to-indigo-500 text-black font-display font-black text-[11px]">E</span>
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-cyan-400 to-indigo-500 text-black font-display font-black text-[11px]">O</span>
             <span className="font-display font-extrabold text-sm tracking-tight text-white">{MARCA}</span>
           </button>
 
@@ -87,7 +87,7 @@ export default function App() {
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-cyan-400 to-indigo-500 text-black font-display font-black text-[11px]">E</span>
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-cyan-400 to-indigo-500 text-black font-display font-black text-[11px]">O</span>
               <span className="font-display font-extrabold text-white text-sm">{MARCA}</span>
             </div>
             <p className="text-xs text-neutral-400 max-w-sm leading-relaxed">

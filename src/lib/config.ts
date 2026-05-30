@@ -11,7 +11,7 @@ export const INBOX_AGENTE = 'se1seguridadestructural@gmail.com';
 // Contacto humano de la empresa (no automatizado).
 export const CONTACTO_EMPRESA = 'info@seguridadestructural.com';
 
-export const MARCA = 'Estructura AI';
+export const MARCA = 'Opicus';
 export const EMPRESA = 'Seguridad Estructural SL';
 
 // Base del backend de suscripción. En local/desarrollo y en el túnel se
