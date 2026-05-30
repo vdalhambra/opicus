@@ -1,21 +1,23 @@
 import React, { useEffect, useRef } from 'react';
 
 /**
- * Hero vivo de Opicus: crew de monigotes cromados articulados (protagonistas)
- * con utensilios técnicos, sobre un campo de cubos cromados ATENUADO de fondo.
+ * Hero de Opicus: crew de monigotes cromados en POSES FIJAS y deliberadas
+ * (fiel a la imagen de referencia), con utensilios SUJETOS por las manos.
+ * Diseño limpio: sin caminata; sólo una flotación mínima + reacción al ratón.
  *
- * - 1 monigote PRINCIPAL: algo más grande y con la cabeza en azul gradiente
- *   (como el "resuelto por correo" del titular).
- * - El resto llevan utensilios: lupa, metro, plano, nivel.
- * - Al pasar el ratón se giran a mirarte y se ILUMINAN en azul (halo + tinte).
- * - Se pueden ARRASTRAR (hit-test a nivel de ventana; el lienzo es
- *   pointer-events-none para no bloquear los botones).
- * - Profundidad por PARTE (con sesgo anatómico) para que las formas no se
- *   solapen de forma rara al moverse: ocluyen como volúmenes coherentes.
+ * - 1 monigote PRINCIPAL: más grande, cabeza en azul gradiente (como el titular).
+ * - El resto, posados usando un utensilio: lupa (inspección), metro (tensando
+ *   la cinta), plano (lámina) y nivel (barra al hombro). El utensilio se ancla
+ *   a la mano calculada según la pose → queda integrado.
+ * - Al pasar el ratón: se giran un poco hacia ti y se ILUMINAN en azul.
+ * - Arrastrables (hit-test a nivel de ventana; lienzo pointer-events-none).
+ * - Profundidad por PARTE con sesgo anatómico → oclusión natural.
  */
 
 type V3 = { x: number; y: number; z: number };
 type Stops = [number, string][];
+type Joint = 'armA' | 'armB' | 'legA' | 'legB';
+type Pose = { armA: number; armB: number; legA: number; legB: number; lean: number };
 
 const UNIT: V3[] = [
   { x: -1, y: -1, z: -1 }, { x: 1, y: -1, z: -1 }, { x: 1, y: 1, z: -1 }, { x: -1, y: 1, z: -1 },
@@ -23,62 +25,75 @@ const UNIT: V3[] = [
 ];
 const FACES = [[4, 5, 6, 7], [1, 0, 3, 2], [5, 1, 2, 6], [0, 4, 7, 3], [7, 6, 2, 3], [5, 4, 0, 1]];
 const SILVER: Stops = [[0, '#2b2e33'], [0.18, '#8d949d'], [0.5, '#ffffff'], [0.78, '#c2c8d0'], [1, '#3a3e44']];
-// Azul gradiente cromado (cian → cielo → índigo), a juego con el titular.
 const BLUE: Stops = [[0, '#0b3a52'], [0.2, '#22d3ee'], [0.5, '#eafdff'], [0.78, '#7dd3fc'], [1, '#4f46e5']];
 const EDGE = '#eef1f5';
 const FOCAL = 620;
+const ARM_LEN = 36; // del hombro (y=82) a la mano (y=46)
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const rotX = (p: V3, a: number): V3 => ({ x: p.x, y: p.y * Math.cos(a) - p.z * Math.sin(a), z: p.y * Math.sin(a) + p.z * Math.cos(a) });
+// Mano (espacio de figura) según el ángulo del brazo.
+const handPt = (pivX: number, a: number): V3 => ({ x: pivX, y: 82 - ARM_LEN * Math.cos(a), z: -ARM_LEN * Math.sin(a) });
 
-// ---- Rig (unidades de figura, y hacia arriba, pies en y=0). zbias = sesgo de orden ----
-interface Part { cx: number; cy: number; cz: number; hx: number; hy: number; hz: number; piv?: V3; swing?: 'A' | 'B'; limb?: 'leg' | 'arm'; zbias: number; head?: boolean; }
+interface Part { cx: number; cy: number; cz: number; hx: number; hy: number; hz: number; piv?: V3; joint?: Joint; zbias: number; head?: boolean; }
 const PARTS: Part[] = [
-  { cx: 0, cy: 104, cz: 0, hx: 17, hy: 17, hz: 16, zbias: 1, head: true },                                  // cabeza
-  { cx: 0, cy: 64, cz: 0, hx: 15, hy: 22, hz: 9, zbias: -3 },                                                // torso
-  { cx: -23, cy: 64, cz: 1, hx: 5.2, hy: 18, hz: 5.2, piv: { x: -23, y: 82, z: 0 }, swing: 'A', limb: 'arm', zbias: 4 },
-  { cx: 23, cy: 64, cz: 1, hx: 5.2, hy: 18, hz: 5.2, piv: { x: 23, y: 82, z: 0 }, swing: 'B', limb: 'arm', zbias: 4 },
-  { cx: -7.5, cy: 21, cz: 0, hx: 6.2, hy: 21, hz: 6.2, piv: { x: -7.5, y: 42, z: 0 }, swing: 'A', limb: 'leg', zbias: -1 },
-  { cx: 7.5, cy: 21, cz: 0, hx: 6.2, hy: 21, hz: 6.2, piv: { x: 7.5, y: 42, z: 0 }, swing: 'B', limb: 'leg', zbias: -1 },
+  { cx: 0, cy: 104, cz: 0, hx: 17, hy: 17, hz: 16, zbias: 1, head: true },
+  { cx: 0, cy: 64, cz: 0, hx: 15, hy: 22, hz: 9, zbias: -3 },
+  { cx: -23, cy: 64, cz: 0, hx: 5.2, hy: 18, hz: 5.2, piv: { x: -23, y: 82, z: 0 }, joint: 'armA', zbias: 4 },
+  { cx: 23, cy: 64, cz: 0, hx: 5.2, hy: 18, hz: 5.2, piv: { x: 23, y: 82, z: 0 }, joint: 'armB', zbias: 4 },
+  { cx: -7.5, cy: 21, cz: 0, hx: 6.2, hy: 21, hz: 6.2, piv: { x: -7.5, y: 42, z: 0 }, joint: 'legA', zbias: -1 },
+  { cx: 7.5, cy: 21, cz: 0, hx: 6.2, hy: 21, hz: 6.2, piv: { x: 7.5, y: 42, z: 0 }, joint: 'legB', zbias: -1 },
 ];
 
-// Utensilios (en mano derecha, hacia delante z+). 'ring' = lente de la lupa.
 type Item = { kind: 'box'; cx: number; cy: number; cz: number; hx: number; hy: number; hz: number; zbias: number }
   | { kind: 'ring'; cx: number; cy: number; cz: number; r: number; zbias: number };
-const TOOLS: Record<string, Item[]> = {
-  lupa: [
-    { kind: 'box', cx: 12, cy: 56, cz: 21, hx: 1.7, hy: 8, hz: 1.7, zbias: 6 },
-    { kind: 'ring', cx: 18, cy: 67, cz: 22, r: 9, zbias: 7 },
-  ],
-  metro: [
-    { kind: 'box', cx: 18, cy: 60, cz: 21, hx: 6, hy: 5.5, hz: 3.4, zbias: 6 },
-    { kind: 'box', cx: 33, cy: 60, cz: 21, hx: 11, hy: 1.9, hz: 0.7, zbias: 6 },
-  ],
-  plano: [
-    { kind: 'box', cx: 17, cy: 64, cz: 23, hx: 13, hy: 9, hz: 0.7, zbias: 6 },
-  ],
-  nivel: [
-    { kind: 'box', cx: 12, cy: 66, cz: 17, hx: 23, hy: 2.6, hz: 2.6, zbias: 6 },
-  ],
-};
+
+// Utensilio anclado a las manos posadas (hL = izq, hR = der).
+function toolItems(tool: string, hL: V3, hR: V3): Item[] {
+  const midY = (hL.y + hR.y) / 2, midZ = (hL.z + hR.z) / 2;
+  switch (tool) {
+    case 'nivel': // barra/nivel horizontal sujeta con las dos manos delante
+      return [{ kind: 'box', cx: 0, cy: midY, cz: midZ, hx: 33, hy: 2.6, hz: 2.6, zbias: 5 }];
+    case 'metro': // caja en la mano derecha + cinta tensada entre manos
+      return [
+        { kind: 'box', cx: hR.x, cy: hR.y, cz: hR.z, hx: 5, hy: 5, hz: 3, zbias: 6 },
+        { kind: 'box', cx: 0, cy: midY, cz: midZ, hx: Math.max(8, Math.abs(hR.x - hL.x) / 2), hy: 1.6, hz: 0.6, zbias: 5 },
+      ];
+    case 'plano': // lámina/plano sujeta entre las dos manos
+      return [{ kind: 'box', cx: 0, cy: midY, cz: midZ + 2, hx: 14, hy: 10, hz: 0.7, zbias: 5 }];
+    case 'lupa': // mango + lente sobre la mano derecha (en alto)
+      return [
+        { kind: 'box', cx: hR.x, cy: hR.y + 5, cz: hR.z, hx: 1.6, hy: 6, hz: 1.6, zbias: 6 },
+        { kind: 'ring', cx: hR.x, cy: hR.y + 13, cz: hR.z, r: 8, zbias: 7 },
+      ];
+    default: return [];
+  }
+}
 
 interface Fig {
-  hx: number; hy: number; ax: number; ay: number; scale: number; phase: number; speed: number;
+  hx: number; hy: number; ax: number; ay: number; scale: number; phase: number;
   baseFace: number; face: number; faceT: number; tilt: number; hover: number;
-  main?: boolean; tool?: keyof typeof TOOLS; bbox: { x0: number; y0: number; x1: number; y1: number };
+  pose: Pose; main?: boolean; tool?: string; bbox: { x0: number; y0: number; x1: number; y1: number };
 }
+// Poses fijas (rad; ángulo negativo = brazo hacia delante/arriba, hacia cámara).
 const FIG_DEFS: Omit<Fig, 'ax' | 'ay' | 'face' | 'faceT' | 'tilt' | 'hover' | 'phase' | 'bbox'>[] = [
-  { hx: 0.45, hy: 0.76, scale: 1.4, speed: 1.0, baseFace: 0.45, tool: 'lupa' },
-  { hx: 0.73, hy: 0.73, scale: 1.45, speed: 1.15, baseFace: -0.3, tool: 'metro' },
-  { hx: 0.60, hy: 0.86, scale: 2.05, speed: 0.85, baseFace: -0.18, main: true },
-  { hx: 0.83, hy: 0.88, scale: 1.6, speed: 0.95, baseFace: -0.55, tool: 'plano' },
-  { hx: 0.93, hy: 0.72, scale: 1.2, speed: 1.25, baseFace: 0.85, tool: 'nivel' },
+  // Lupa: brazo derecho en alto inspeccionando, ligero inclinado, pierna adelantada.
+  { hx: 0.44, hy: 0.78, scale: 1.4, baseFace: 0.4, tool: 'lupa', pose: { armA: 0.25, armB: -1.95, legA: 0.38, legB: -0.12, lean: -0.16 } },
+  // Metro: ambos brazos al frente tensando la cinta.
+  { hx: 0.72, hy: 0.74, scale: 1.45, baseFace: -0.32, tool: 'metro', pose: { armA: -1.12, armB: -1.02, legA: 0.14, legB: -0.14, lean: -0.05 } },
+  // PRINCIPAL: erguido, sin utensilio, cabeza azul.
+  { hx: 0.60, hy: 0.86, scale: 2.05, baseFace: -0.16, main: true, pose: { armA: 0.22, armB: -0.22, legA: 0.16, legB: -0.16, lean: 0 } },
+  // Plano: ambos brazos al frente sujetando la lámina, leve inclinación.
+  { hx: 0.83, hy: 0.86, scale: 1.6, baseFace: -0.45, tool: 'plano', pose: { armA: -0.62, armB: -0.62, legA: 0.12, legB: -0.12, lean: -0.09 } },
+  // Nivel: barra al frente con las dos manos.
+  { hx: 0.93, hy: 0.72, scale: 1.2, baseFace: 0.8, tool: 'nivel', pose: { armA: -1.35, armB: -1.35, legA: 0.13, legB: -0.13, lean: -0.05 } },
 ];
 
 interface Cube { nx: number; ny: number; size: number; depth: number; phase: number; rx: number; ry: number; rz: number; sx: number; sy: number; sz: number; }
 const CUBE_DEFS = [
   { nx: -0.85, ny: -0.6, size: 30, depth: 0.4 }, { nx: 0.9, ny: -0.55, size: 26, depth: 0.35 },
-  { nx: 0.1, ny: -0.78, size: 34, depth: 0.5 }, { nx: -0.5, ny: -0.85, size: 22, depth: 0.3 },
-  { nx: 0.55, ny: -0.82, size: 24, depth: 0.32 }, { nx: -0.95, ny: 0.1, size: 20, depth: 0.28 },
-  { nx: 0.96, ny: 0.05, size: 28, depth: 0.45 }, { nx: -0.2, ny: -0.5, size: 18, depth: 0.25 },
+  { nx: 0.1, ny: -0.82, size: 32, depth: 0.5 }, { nx: -0.5, ny: -0.85, size: 22, depth: 0.3 },
+  { nx: 0.55, ny: -0.86, size: 24, depth: 0.32 }, { nx: -0.95, ny: 0.1, size: 20, depth: 0.28 },
+  { nx: 0.96, ny: 0.05, size: 28, depth: 0.45 }, { nx: -0.2, ny: -0.55, size: 18, depth: 0.25 },
 ];
 
 function boxFaces(proj: { x: number; y: number; z: number }[], scaleRef: number) {
@@ -95,7 +110,6 @@ function boxFaces(proj: { x: number; y: number; z: number }[], scaleRef: number)
   }
   return out;
 }
-const rotX = (p: V3, a: number): V3 => ({ x: p.x, y: p.y * Math.cos(a) - p.z * Math.sin(a), z: p.y * Math.sin(a) + p.z * Math.cos(a) });
 
 export default function StructuralCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -111,17 +125,17 @@ export default function StructuralCanvas() {
     if (!ctx) return;
 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const mo = reduce ? 0.45 : 1;
+    const mo = reduce ? 0.4 : 1;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
     let W = 0, H = 0, time = 0, raf = 0, visible = true;
 
     const figs: Fig[] = FIG_DEFS.map((d) => ({
-      ...d, ax: 0, ay: 0, face: d.baseFace, faceT: d.baseFace, tilt: 0, hover: 0,
+      ...d, ax: 0, ay: 0, face: d.baseFace, faceT: d.baseFace, tilt: d.pose.lean, hover: 0,
       phase: Math.abs((d.hx * 9.13) % 6.28), bbox: { x0: 0, y0: 0, x1: 0, y1: 0 },
     }));
     const cubes: Cube[] = CUBE_DEFS.map((c, i) => ({
       ...c, phase: i * 1.7, rx: i * 0.4, ry: i * 0.3, rz: i * 0.2,
-      sx: 0.003 + (i % 3) * 0.0006, sy: 0.0024 + (i % 4) * 0.0005, sz: 0.0012,
+      sx: 0.0016 + (i % 3) * 0.0004, sy: 0.0013 + (i % 4) * 0.0003, sz: 0.0008,
     }));
 
     const placeFigs = () => {
@@ -180,8 +194,8 @@ export default function StructuralCanvas() {
     const drawCube = (c: Cube, sizeScale: number, parX: number, parY: number) => {
       const t = time + c.phase;
       c.rx += c.sx * mo; c.ry += c.sy * mo; c.rz += c.sz * mo;
-      const hx = W / 2 + c.nx * W * 0.5 + Math.sin(t * 0.5) * 10 + parX * c.depth;
-      const hy = H / 2 + c.ny * H * 0.5 + Math.cos(t * 0.5) * 8 + parY * c.depth;
+      const hx = W / 2 + c.nx * W * 0.5 + Math.sin(t * 0.4) * 6 + parX * c.depth;
+      const hy = H / 2 + c.ny * H * 0.5 + Math.cos(t * 0.4) * 5 + parY * c.depth;
       const s = c.size * sizeScale;
       const cX = Math.cos(c.rx), sX = Math.sin(c.rx), cY = Math.cos(c.ry), sY = Math.sin(c.ry), cZ = Math.cos(c.rz), sZ = Math.sin(c.rz);
       const proj = UNIT.map((v) => {
@@ -192,21 +206,19 @@ export default function StructuralCanvas() {
         const k = FOCAL / (FOCAL - z2);
         return { x: hx + x3 * k, y: hy + y3 * k, z: z2 };
       });
-      paintFaces(boxFaces(proj, s), 0.4, SILVER, 0.04, 0);
+      paintFaces(boxFaces(proj, s), 0.34, SILVER, 0.03, 0);
     };
 
     const drawFig = (f: Fig, sizeScale: number) => {
-      f.phase += 0.04 * f.speed * mo;
-      const sw = Math.sin(f.phase) * (0.42 + f.hover * 0.22);
-      const swing = { A: sw, B: -sw };
-      const bob = Math.abs(Math.sin(f.phase)) * 5 * sizeScale;
+      f.phase += 0.01 * mo;
+      const bob = Math.sin(time * 0.6 + f.phase) * 1.6 * sizeScale; // flotación mínima (limpio)
       const dist = pointer.current.inside ? Math.hypot(pointer.current.x - f.ax, pointer.current.y - (f.ay - 90 * f.scale * sizeScale)) : 9999;
       const near = clamp(1 - dist / (210 * sizeScale), 0, 1);
       f.hover += (near - f.hover) * 0.1;
       const dx = pointer.current.inside ? pointer.current.x - f.ax : 0;
-      f.faceT = f.baseFace + (f.hover > 0.05 ? clamp(dx * 0.004, -1.1, 1.1) : Math.sin(time * 0.4 + f.phase) * 0.22);
-      f.face += (f.faceT - f.face) * 0.1;
-      f.tilt += ((f.hover > 0.05 ? -0.1 : 0) - f.tilt) * 0.1;
+      f.faceT = f.baseFace + (f.hover > 0.05 ? clamp(dx * 0.0025, -0.5, 0.5) : 0);
+      f.face += (f.faceT - f.face) * 0.08;
+      f.tilt += ((f.pose.lean - f.hover * 0.05) - f.tilt) * 0.08;
 
       const sc = f.scale * sizeScale * (1 + f.hover * 0.1);
       const cF = Math.cos(f.face), sF = Math.sin(f.face);
@@ -225,7 +237,7 @@ export default function StructuralCanvas() {
       const acc = (px: number, py: number) => { if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; };
 
       for (const part of PARTS) {
-        const a = part.swing ? swing[part.swing] * (part.limb === 'arm' ? -1 : 1) : 0;
+        const a = part.joint ? f.pose[part.joint] : 0;
         const proj = UNIT.map((u) => {
           let p: V3 = { x: part.cx + u.x * part.hx, y: part.cy + u.y * part.hy, z: part.cz + u.z * part.hz };
           if (part.piv && a) { p = rotX({ x: p.x - part.piv.x, y: p.y - part.piv.y, z: p.z - part.piv.z }, a); p = { x: p.x + part.piv.x, y: p.y + part.piv.y, z: p.z + part.piv.z }; }
@@ -235,7 +247,8 @@ export default function StructuralCanvas() {
         rs.push({ key: cz + part.zbias * 2, t: 'box', faces: boxFaces(proj, Math.max(part.hx, part.hy) * sc), stops: f.main && part.head ? BLUE : SILVER });
       }
       if (f.tool) {
-        for (const it of TOOLS[f.tool]) {
+        const hL = handPt(-23, f.pose.armA), hR = handPt(23, f.pose.armB);
+        for (const it of toolItems(f.tool, hL, hR)) {
           if (it.kind === 'box') {
             const proj = UNIT.map((u) => { const s = tf({ x: it.cx + u.x * it.hx, y: it.cy + u.y * it.hy, z: it.cz + u.z * it.hz }); acc(s.x, s.y); return s; });
             let cz = 0; for (const s of proj) cz += s.z; cz /= 8;
@@ -249,7 +262,6 @@ export default function StructuralCanvas() {
       }
       f.bbox = { x0, y0, x1, y1 };
 
-      // Halo azul al iluminarse (detrás de la figura).
       if (f.hover > 0.02) {
         const gx = (x0 + x1) / 2, gy = (y0 + y1) / 2, rad = Math.max(x1 - x0, y1 - y0) * 1.0;
         ctx.globalCompositeOperation = 'lighter';
@@ -261,17 +273,16 @@ export default function StructuralCanvas() {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // Profundidad por PARTE (sesgo anatómico incluido) → oclusión natural.
       rs.sort((a, b) => a.key - b.key);
       for (const r of rs) {
         if (r.t === 'box') paintFaces(r.faces, 1, r.stops, f.hover * 0.55, f.hover);
         else {
-          ctx.globalAlpha = 0.5 + f.hover * 0.3;
+          ctx.globalAlpha = 0.55 + f.hover * 0.3;
           ctx.strokeStyle = f.hover > 0.05 ? 'rgba(125,211,252,0.95)' : EDGE;
-          ctx.lineWidth = Math.max(1.5, 2.4 * sc * 0.5);
-          ctx.beginPath(); ctx.ellipse(r.cx, r.cy, r.r, r.r * 0.92, 0, 0, Math.PI * 2); ctx.stroke();
-          ctx.globalAlpha = 0.12 + f.hover * 0.18; ctx.fillStyle = f.hover > 0.05 ? '#7dd3fc' : '#cfd6df';
-          ctx.beginPath(); ctx.ellipse(r.cx, r.cy, r.r * 0.78, r.r * 0.72, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.lineWidth = Math.max(1.6, 2.6 * sc * 0.5);
+          ctx.beginPath(); ctx.ellipse(r.cx, r.cy, r.r, r.r * 0.94, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = 0.12 + f.hover * 0.2; ctx.fillStyle = f.hover > 0.05 ? '#7dd3fc' : '#cfd6df';
+          ctx.beginPath(); ctx.ellipse(r.cx, r.cy, r.r * 0.78, r.r * 0.73, 0, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
         }
       }
@@ -282,8 +293,8 @@ export default function StructuralCanvas() {
       time += 0.006 * mo;
       ctx.clearRect(0, 0, W, H);
       const sizeScale = clamp(Math.min(W, H) / 760, 0.5, 1.15);
-      const parX = (pointer.current.inside ? pointer.current.x / W - 0.5 : 0) * 40;
-      const parY = (pointer.current.inside ? pointer.current.y / H - 0.5 : 0) * 24;
+      const parX = (pointer.current.inside ? pointer.current.x / W - 0.5 : 0) * 34;
+      const parY = (pointer.current.inside ? pointer.current.y / H - 0.5 : 0) * 20;
       for (const c of cubes) drawCube(c, sizeScale, parX, parY);
       for (const f of [...figs].sort((a, b) => a.ay - b.ay)) drawFig(f, sizeScale);
       raf = requestAnimationFrame(render);
