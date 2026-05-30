@@ -127,6 +127,6 @@ if (fs.existsSync(DIST)) {
 }
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[estructura-ai] sirviendo en http://localhost:${PORT}`);
-  console.log(`[estructura-ai] API alta → ${SCRIPT}`);
+  console.log(`[opicus] sirviendo en http://localhost:${PORT}`);
+  console.log(`[opicus] API alta → ${SCRIPT}`);
 });

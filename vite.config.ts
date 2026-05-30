@@ -5,7 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    // Base configurable: '/' en local y Vercel; '/estructura-ai/' en GitHub Pages.
+    // Base configurable: '/' en local y Vercel; '/opicus/' en GitHub Pages.
     base: process.env.VITE_BASE || '/',
     plugins: [react(), tailwindcss()],
     resolve: {
