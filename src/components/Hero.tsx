@@ -16,18 +16,17 @@ const fade = (delay: number) => ({
 
 export default function Hero() {
   return (
-    <div className="relative overflow-hidden min-h-[88vh] flex items-center border-b border-white/5">
-      {/* Campo de cubos cromados: fondo vivo del hero */}
+    <div className="relative overflow-hidden min-h-[92vh] flex items-start border-b border-white/5">
+      {/* Crew de monigotes cromados (protagonistas) + cubos de fondo */}
       <div className="absolute inset-0 z-0">
         <StructuralCanvas />
       </div>
-      {/* Scrims para legibilidad del texto sobre los cubos */}
-      <div className="absolute inset-0 z-[1] bg-gradient-to-r from-black via-black/75 to-transparent pointer-events-none" />
-      <div className="absolute inset-x-0 bottom-0 h-40 z-[1] bg-gradient-to-t from-black to-transparent pointer-events-none" />
-      <div className="absolute inset-x-0 top-0 h-20 z-[1] bg-gradient-to-b from-black/80 to-transparent pointer-events-none" />
+      {/* Scrim localizado tras el titular; deja brillar a los monigotes */}
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-[radial-gradient(120%_90%_at_15%_24%,rgba(0,0,0,0.92),rgba(0,0,0,0.5)_40%,transparent_70%)]" />
+      <div className="absolute inset-x-0 top-0 h-24 z-[1] pointer-events-none bg-gradient-to-b from-black/85 to-transparent" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 w-full pt-24 pb-16">
-        <div className="max-w-2xl">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 w-full pt-28 pb-20">
+        <div className="max-w-xl">
           <motion.div
             {...fade(0)}
             className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/5 px-3 py-1 mb-6"
