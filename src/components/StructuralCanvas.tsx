@@ -12,7 +12,8 @@ import React, { useEffect, useRef } from 'react';
  *   mano calculada según la pose y se modela con detalle (boca, aro, cinta…).
  * - Al pasar el ratón: se giran un poco hacia ti y se ILUMINAN en azul.
  * - Arrastrables (hit-test a nivel de ventana; lienzo pointer-events-none).
- * - Profundidad por PARTE con sesgo anatómico → oclusión natural.
+ * - Orden de pintado por CAPA anatómica fija: piernas < cuerpo < brazos <
+ *   cabeza < herramientas. La profundidad solo desempata dentro de cada capa.
  */
 
 type V3 = { x: number; y: number; z: number };
@@ -35,14 +36,17 @@ const rotX = (p: V3, a: number): V3 => ({ x: p.x, y: p.y * Math.cos(a) - p.z * M
 // Mano (espacio de figura) según el ángulo del brazo.
 const handPt = (pivX: number, a: number): V3 => ({ x: pivX, y: 82 - ARM_LEN * Math.cos(a), z: -ARM_LEN * Math.sin(a) });
 
-interface Part { cx: number; cy: number; cz: number; hx: number; hy: number; hz: number; piv?: V3; joint?: Joint; zbias: number; head?: boolean; }
+// layer = capa anatómica fija de pintado (mayor = más al frente):
+// piernas(0) < cuerpo(1) < brazos(2) < cabeza(3) < herramientas(4, en código).
+// La profundidad z solo desempata DENTRO de cada capa, nunca entre capas.
+interface Part { cx: number; cy: number; cz: number; hx: number; hy: number; hz: number; piv?: V3; joint?: Joint; layer: number; head?: boolean; }
 const PARTS: Part[] = [
-  { cx: 0, cy: 104, cz: 0, hx: 17, hy: 17, hz: 16, zbias: 1, head: true },
-  { cx: 0, cy: 64, cz: 0, hx: 15, hy: 22, hz: 9, zbias: -3 },
-  { cx: -23, cy: 64, cz: 0, hx: 5.2, hy: 18, hz: 5.2, piv: { x: -23, y: 82, z: 0 }, joint: 'armA', zbias: 4 },
-  { cx: 23, cy: 64, cz: 0, hx: 5.2, hy: 18, hz: 5.2, piv: { x: 23, y: 82, z: 0 }, joint: 'armB', zbias: 4 },
-  { cx: -7.5, cy: 21, cz: 0, hx: 6.2, hy: 21, hz: 6.2, piv: { x: -7.5, y: 42, z: 0 }, joint: 'legA', zbias: -1 },
-  { cx: 7.5, cy: 21, cz: 0, hx: 6.2, hy: 21, hz: 6.2, piv: { x: 7.5, y: 42, z: 0 }, joint: 'legB', zbias: -1 },
+  { cx: 0, cy: 104, cz: 0, hx: 17, hy: 17, hz: 16, layer: 3, head: true },
+  { cx: 0, cy: 64, cz: 0, hx: 15, hy: 22, hz: 9, layer: 1 },
+  { cx: -23, cy: 64, cz: 0, hx: 5.2, hy: 18, hz: 5.2, piv: { x: -23, y: 82, z: 0 }, joint: 'armA', layer: 2 },
+  { cx: 23, cy: 64, cz: 0, hx: 5.2, hy: 18, hz: 5.2, piv: { x: 23, y: 82, z: 0 }, joint: 'armB', layer: 2 },
+  { cx: -7.5, cy: 21, cz: 0, hx: 6.2, hy: 21, hz: 6.2, piv: { x: -7.5, y: 42, z: 0 }, joint: 'legA', layer: 0 },
+  { cx: 7.5, cy: 21, cz: 0, hx: 6.2, hy: 21, hz: 6.2, piv: { x: 7.5, y: 42, z: 0 }, joint: 'legB', layer: 0 },
 ];
 
 type Item = { kind: 'box'; cx: number; cy: number; cz: number; hx: number; hy: number; hz: number; zbias: number; rx?: number; rz?: number }
@@ -255,7 +259,7 @@ export default function StructuralCanvas() {
           const s = tf(p); acc(s.x, s.y); return s;
         });
         let cz = 0; for (const s of proj) cz += s.z; cz /= 8;
-        rs.push({ key: cz + part.zbias * 2, t: 'box', faces: boxFaces(proj, Math.max(part.hx, part.hy) * sc), stops: f.main && part.head ? BLUE : SILVER });
+        rs.push({ key: part.layer * 1000 + cz, t: 'box', faces: boxFaces(proj, Math.max(part.hx, part.hy) * sc), stops: f.main && part.head ? BLUE : SILVER });
       }
       if (f.tool) {
         const hL = handPt(-23, f.pose.armA), hR = handPt(23, f.pose.armB);
@@ -270,11 +274,11 @@ export default function StructuralCanvas() {
               const s = tf({ x: it.cx + p.x, y: it.cy + p.y, z: it.cz + p.z }); acc(s.x, s.y); return s;
             });
             let cz = 0; for (const s of proj) cz += s.z; cz /= 8;
-            rs.push({ key: cz + it.zbias * 2, t: 'box', faces: boxFaces(proj, Math.max(it.hx, it.hy) * sc), stops: SILVER });
+            rs.push({ key: 4000 + it.zbias * 10 + cz, t: 'box', faces: boxFaces(proj, Math.max(it.hx, it.hy) * sc), stops: SILVER });
           } else {
             const c = tf({ x: it.cx, y: it.cy, z: it.cz }); const k = FOCAL / (FOCAL - c.z);
             acc(c.x - it.r * sc * k, c.y - it.r * sc * k); acc(c.x + it.r * sc * k, c.y + it.r * sc * k);
-            rs.push({ key: c.z + it.zbias * 2, t: 'ring', cx: c.x, cy: c.y, r: it.r * sc * k });
+            rs.push({ key: 4000 + it.zbias * 10 + c.z, t: 'ring', cx: c.x, cy: c.y, r: it.r * sc * k });
           }
         }
       }
