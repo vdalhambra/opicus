@@ -62,17 +62,27 @@ export default function App() {
             </span>
           </div>
           <div className="relative flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
-            <motion.div
-              className="flex shrink-0 items-center gap-10 pr-10"
-              animate={reduced ? undefined : { x: ['0%', '-50%'] }}
-              transition={reduced ? undefined : { duration: 26, ease: 'linear', repeat: Infinity }}
-            >
-              {[...NORMATIVA, ...NORMATIVA].map((n, i) => (
-                <span key={i} className="flex items-center gap-2 font-mono text-[11px] text-neutral-400 whitespace-nowrap">
-                  <span className="h-1 w-1 rounded-full bg-cyan-500/60" /> {n}
-                </span>
-              ))}
-            </motion.div>
+            {/*
+              Dos pistas idénticas desplazándose -100%: cuando la primera sale por
+              la izquierda, la segunda ocupa exactamente su lugar → bucle exacto, sin
+              salto. Cada pista repite la lista lo suficiente para llenar pantallas
+              anchas y que nunca quede hueco a la derecha.
+            */}
+            {[0, 1].map((track) => (
+              <motion.div
+                key={track}
+                aria-hidden={track === 1}
+                className="flex shrink-0 items-center gap-10 pr-10"
+                animate={reduced ? undefined : { x: ['0%', '-100%'] }}
+                transition={reduced ? undefined : { duration: 60, ease: 'linear', repeat: Infinity }}
+              >
+                {[...NORMATIVA, ...NORMATIVA, ...NORMATIVA].map((n, i) => (
+                  <span key={i} className="flex items-center gap-2 font-mono text-[11px] text-neutral-400 whitespace-nowrap">
+                    <span className="h-1 w-1 rounded-full bg-cyan-500/60" /> {n}
+                  </span>
+                ))}
+              </motion.div>
+            ))}
           </div>
         </section>
 
