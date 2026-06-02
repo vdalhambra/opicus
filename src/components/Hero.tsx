@@ -17,11 +17,11 @@ const fade = (delay: number) => ({
 export default function Hero() {
   return (
     <div className="relative overflow-hidden min-h-[92vh] flex items-start border-b border-white/5">
-      {/* Crew de monigotes cromados (protagonistas) + cubos de fondo */}
+      {/* Malla estructural abstracta (celosía / mapa de tensiones) */}
       <div className="absolute inset-0 z-0">
         <StructuralCanvas />
       </div>
-      {/* Scrim localizado tras el titular; deja brillar a los monigotes */}
+      {/* Scrim localizado tras el titular; deja brillar la malla del fondo */}
       <div className="absolute inset-0 z-[1] pointer-events-none bg-[radial-gradient(120%_90%_at_15%_24%,rgba(0,0,0,0.92),rgba(0,0,0,0.5)_40%,transparent_70%)]" />
       <div className="absolute inset-x-0 top-0 h-24 z-[1] pointer-events-none bg-gradient-to-b from-black/85 to-transparent" />
 
@@ -54,7 +54,7 @@ export default function Hero() {
           >
             Envía tu consulta a una dirección de correo y recibe una memoria de cálculo
             con el artículo de norma citado, el número concreto y el nivel de confianza.
-            Cada respuesta la <span className="text-white">revisa un ingeniero</span> antes
+            Cada respuesta la <span className="text-white">revisa y firma un ingeniero</span> antes
             de salir. Conforme a CTE, Código Estructural y Eurocódigos.
           </motion.p>
 
@@ -77,7 +77,7 @@ export default function Hero() {
           <motion.div {...fade(0.32)} className="flex items-center gap-2 mt-7 text-neutral-400">
             <ShieldCheck className="h-3.5 w-3.5 text-cyan-500/70" />
             <span className="font-mono text-[10px] tracking-wide">
-              Revisión humana · Trazabilidad a norma · Sin instalar nada
+              Revisado por ingeniero · Trazabilidad a norma · Sin instalar nada
             </span>
           </motion.div>
         </div>

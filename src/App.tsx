@@ -4,7 +4,6 @@ import { Mail, ArrowUpRight } from 'lucide-react';
 import AmbientBackground from './components/AmbientBackground';
 import Hero from './components/Hero';
 import HowItWorks from './components/HowItWorks';
-import EmailSimulator from './components/EmailSimulator';
 import Features from './components/Features';
 import Pricing from './components/Pricing';
 import { MARCA, EMPRESA, CONTACTO_EMPRESA, INBOX_AGENTE, NORMATIVA } from './lib/config';
@@ -16,8 +15,7 @@ function scrollTo(id: string) {
 
 const NAV = [
   { id: 'como-funciona', label: 'Cómo funciona' },
-  { id: 'simulador', label: 'Simulador' },
-  { id: 'adn', label: 'Por qué confiar' },
+  { id: 'servicio', label: 'El servicio' },
 ];
 
 export default function App() {
@@ -54,7 +52,6 @@ export default function App() {
       <main id="top" className="relative z-10">
         <Hero />
         <HowItWorks />
-        <EmailSimulator />
         <Features />
 
         {/* Marquee de normativa */}

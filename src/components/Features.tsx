@@ -12,8 +12,8 @@ const VALUES = [
   },
   {
     icon: UserCheck,
-    title: 'Revisión por ingeniero',
-    desc: 'La IA redacta; un ingeniero valida antes de enviar. Nunca sale una respuesta sin supervisión humana.',
+    title: 'Revisado por un ingeniero',
+    desc: 'Un ingeniero prepara y revisa cada respuesta antes de enviarla. Recibes el criterio de un profesional, no una respuesta automática.',
   },
   {
     icon: BookMarked,
@@ -39,7 +39,7 @@ const VALUES = [
 
 export default function Features() {
   return (
-    <section id="adn" className="py-20 sm:py-28 scroll-mt-24">
+    <section id="servicio" className="py-20 sm:py-28 scroll-mt-24">
       <div className="max-w-5xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -48,13 +48,13 @@ export default function Features() {
           transition={{ duration: 0.6 }}
           className="mb-14 max-w-3xl"
         >
-          <span className="font-mono text-[9px] text-cyan-400/80 uppercase tracking-widest font-semibold">POR QUÉ CONFIAR</span>
+          <span className="font-mono text-[9px] text-cyan-400/80 uppercase tracking-widest font-semibold">EL SERVICIO</span>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tighter leading-[1.02] text-white mt-3">
             Rigor de ingeniería, velocidad de un correo.
           </h2>
           <p className="font-sans text-sm text-neutral-400 mt-5 leading-relaxed max-w-lg">
-            No es un chatbot que improvisa. Es una base documental de normativa oficial,
-            búsqueda híbrida y un ingeniero al final del proceso.
+            Cada respuesta se apoya en una base documental de normativa oficial y la firma
+            un ingeniero. Datos trazables a su fuente, nunca respuestas improvisadas.
           </p>
         </motion.div>
 

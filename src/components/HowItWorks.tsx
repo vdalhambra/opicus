@@ -13,14 +13,14 @@ const STEPS = [
   {
     icon: ScanSearch,
     n: '02',
-    title: 'El agente busca y calcula',
-    desc: 'Localiza el artículo aplicable en su base documental (CTE, Código Estructural, EHE, EAE, Eurocódigos) y redacta la memoria con cada dato citado a su fuente.',
+    title: 'Localizamos la norma y calculamos',
+    desc: 'Buscamos el artículo aplicable en nuestra base documental (CTE, Código Estructural, EHE, EAE, Eurocódigos) y preparamos la memoria con cada dato citado a su fuente.',
   },
   {
     icon: UserCheck,
     n: '03',
     title: 'Un ingeniero revisa y responde',
-    desc: 'El borrador llega a nuestro equipo, que lo valida y te contesta en el mismo hilo. Nunca enviamos nada sin revisión humana.',
+    desc: 'Un ingeniero del equipo revisa cada cálculo, lo valida y te responde en el mismo hilo. Ninguna respuesta sale sin pasar por sus manos.',
   },
 ];
 
@@ -41,7 +41,7 @@ export default function HowItWorks() {
           </h2>
           <p className="font-sans text-sm text-neutral-400 mt-4 leading-relaxed">
             Tu canal de siempre, el correo, convertido en una ventanilla de cálculo estructural
-            con respaldo documental y revisión profesional.
+            con respaldo documental y revisión de ingeniería.
           </p>
         </motion.div>
 
